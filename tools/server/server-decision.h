@@ -35,8 +35,14 @@ struct server_decision_context {
     // read the "<arch>.decision.*" metadata, type stays NONE if the model has none
     void init(const llama_model * model);
 
+    // false for a model that reads the whole prompt with non-causal attention (pplx-decider v1.1)
+    bool causal_attn = true;
+
     // true if the questions of a request start with the same tokens, and the model can continue from them
     bool can_share_prompt() const {
+        if (!causal_attn) {
+            return false;
+        }
         switch (type) {
             case COMMON_DECISION_TYPE_OPENJEV:
             case COMMON_DECISION_TYPE_GRANITE_SWITCH:

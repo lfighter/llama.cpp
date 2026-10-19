@@ -1233,6 +1233,7 @@ private:
 
         try {
             decision.init(model_tgt);
+            decision.causal_attn = llama_get_causal_attn(ctx_tgt);
         } catch (const std::exception & e) {
             SRV_ERR("failed to init decision model: %s\n", e.what());
             return false;
@@ -3695,7 +3696,10 @@ private:
                                 return;
                             }
 
-                            if (slot.task->params.cache_prompt && !slot.task->is_stateless()) {
+                            // with non-causal attention the state is read again for each question, no prefix can be reused
+                            const bool non_causal_decision = slot.task->type == SERVER_TASK_TYPE_DECISION && !llama_get_causal_attn(ctx_tgt);
+
+                            if (slot.task->params.cache_prompt && !slot.task->is_stateless() && !non_causal_decision) {
                                 // reuse any previously computed tokens that are common with the new prompt
                                 n_past = slot.prompt.tokens.get_common_prefix(input_tokens);
 
